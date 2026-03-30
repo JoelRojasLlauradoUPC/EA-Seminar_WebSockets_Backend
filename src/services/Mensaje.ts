@@ -4,10 +4,22 @@ import MensajeModel, { IMensajeModel } from '../models/Mensaje';
 
 export class MensajeService {
     private io: SocketIOServer;
+    private usuariosConectados: Map<string, string>; //map d usuaris
 
     constructor(io: SocketIOServer) {
         this.io = io;
+        this.usuariosConectados = new Map<string, string>();
     }
+
+    private obtenerUsuariosConectados(): string[] { //petició expressa
+        return [...new Set(this.usuariosConectados.values())];
+    }
+
+    private emitirUsuariosConectados(): void { //al rebre de front end la indicacio
+        const lista = this.obtenerUsuariosConectados();
+        console.log('[SOCKET] Emitiendo online-users:', lista);
+        this.io.emit('online-users', lista);
+    } //llista users connectats
 
     /**
      * Inicializa los listeners de Socket.io
@@ -15,6 +27,23 @@ export class MensajeService {
     public inicializarSockets(): void {
         this.io.on('connection', (socket: Socket) => {
             Logging.info(`Socket conectado: ${socket.id}`);
+
+            //new socket se ha connectat, enviem al nou la llista de connectats
+            socket.emit('online-users', this.obtenerUsuariosConectados());
+
+            socket.on('register-user', (payload: string | { usuario?: string }) => {
+                const usuario = typeof payload === 'string' ? payload : payload?.usuario;
+
+                if (!usuario || !usuario.trim()) { //validació de datos
+                    console.log('[SOCKET] register-user recibido vacío o inválido:', payload);
+                    return;
+                }
+
+                this.usuariosConectados.set(socket.id, usuario.trim()); //associar socket a user
+                Logging.info(`Usuario online: ${usuario} (${socket.id})`);
+                console.log(`[SOCKET] Usuario registrado: ${usuario} (socket: ${socket.id})`);
+                this.emitirUsuariosConectados();//funcio x enviar connectats al nou
+            });
 
             /* 
             // Unirse a una sala de organización (DESACTIVADO PARA CHAT GLOBAL)
@@ -66,7 +95,16 @@ export class MensajeService {
 
             // Desconexión
             socket.on('disconnect', () => {
+                const usuario = this.usuariosConectados.get(socket.id);
+                this.usuariosConectados.delete(socket.id);
+                // x gestionar la desconnexió
                 Logging.info(`Socket desconectado: ${socket.id}`);
+
+                if (usuario) {
+                    Logging.info(`Usuario offline: ${usuario}`);
+                }
+
+                this.emitirUsuariosConectados();
             });
         });
     }
