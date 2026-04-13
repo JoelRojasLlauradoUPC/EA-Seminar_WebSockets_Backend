@@ -62,3 +62,13 @@ npm run dev
 Recordad que necesitáis tener vuestra base de datos de MongoDB corriendo (ver archivo `.env`). El servidor arrancará por defecto en el puerto `1337`.
 
 ¡Mucho ánimo y a programar! 🚀
+
+## Materials Consultats
+- Els disponibles a Atenea.
+- Els publicats pel grup que ha presentat el seminari.
+
+## Detall d'ús de la IA generativa
+Descrit al vídeo.
+
+## Vídeo amb la DEMO
+https://youtu.be/2eTK47Wh3LE
